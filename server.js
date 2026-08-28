@@ -10,12 +10,12 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 // =====================================================
-// LOGIC V5
+// LOGIC V6
 // =====================================================
-// Mỗi lần mở trang bình chọn = 1 lượt tham gia mới.
-// Cùng một điện thoại vào lần 2/lần 3 vẫn được tính là lượt mới.
-// Nếu lượt đó bấm CÓ -> giữ lại vĩnh viễn cho đến RESET.
-// Nếu lượt đó chưa bấm CÓ và rời trang -> sau 30 giây mới loại khỏi mẫu số.
+// Mỗi lần mở trang người chơi = 1 lượt tham gia mới.
+// Mỗi lượt có "game riêng" trên điện thoại.
+// Tổng số lần bấm KHÔNG của mọi lượt chỉ dùng cho màn hình HOST.
+// Điện thoại KHÔNG dùng tổng noAttempts để co/phóng nút.
 
 const sessions = new Map();
 // sessionId -> {
@@ -25,9 +25,9 @@ const sessions = new Map();
 // }
 
 const leaveTimers = new Map();
-let noAttempts = 0;
+let globalNoAttempts = 0;
 
-const LEAVE_GRACE_MS = 30000; // 30 giây
+const LEAVE_GRACE_MS = 15000; // 15 giây
 
 function getState() {
   let participants = 0;
@@ -39,7 +39,6 @@ function getState() {
   }
 
   const noCount = 0;
-
   const yesPercent = participants > 0
     ? Math.round((yesCount / participants) * 100)
     : 0;
@@ -49,7 +48,7 @@ function getState() {
     yesCount,
     noCount,
     yesPercent,
-    noAttempts
+    globalNoAttempts
   };
 }
 
@@ -69,18 +68,12 @@ function scheduleRemovalIfUnvoted(sessionId) {
   cancelLeaveTimer(sessionId);
 
   const s = sessions.get(sessionId);
-  if (!s) return;
-
-  // Đã bấm CÓ -> giữ lại vĩnh viễn đến RESET
-  if (s.votedYes) return;
+  if (!s || s.votedYes) return;
 
   const timer = setTimeout(() => {
     const current = sessions.get(sessionId);
     if (!current) return;
 
-    // Chỉ loại nếu:
-    // - chưa bấm CÓ
-    // - không còn kết nối
     if (!current.votedYes && !current.socketId) {
       current.counted = false;
       broadcast();
@@ -134,7 +127,6 @@ app.use(express.static(path.join(__dirname, "public")));
 io.on("connection", (socket) => {
   socket.emit("state", getState());
 
-  // Mỗi lần mở trang sẽ gửi 1 sessionId MỚI.
   socket.on("joinSession", (sessionId) => {
     if (typeof sessionId !== "string" || sessionId.length < 8) return;
 
@@ -155,7 +147,6 @@ io.on("connection", (socket) => {
     socket.data.sessionId = sessionId;
 
     const s = sessions.get(sessionId);
-
     socket.emit("joined", {
       sessionId,
       alreadyVotedYes: s.votedYes
@@ -183,14 +174,15 @@ io.on("connection", (socket) => {
     }
 
     socket.data.sessionId = sessionId;
-
     socket.emit("voteAccepted", { choice: "yes" });
     broadcast();
   });
 
-  // KHÔNG chỉ làm game vui, không ghi nhận phiếu.
+  // Mỗi lần một điện thoại bấm KHÔNG:
+  // - server chỉ cộng tổng globalNoAttempts cho HOST
+  // - điện thoại tự xử lý kích thước bằng biến local riêng
   socket.on("tryNo", () => {
-    noAttempts += 1;
+    globalNoAttempts += 1;
     broadcast();
   });
 
@@ -201,7 +193,7 @@ io.on("connection", (socket) => {
 
     leaveTimers.clear();
     sessions.clear();
-    noAttempts = 0;
+    globalNoAttempts = 0;
 
     io.emit("pollReset");
     broadcast();
@@ -216,8 +208,8 @@ io.on("connection", (socket) => {
 
     s.socketId = null;
 
-    // Nếu đã bấm CÓ -> giữ nguyên.
-    // Nếu chưa bấm CÓ -> bắt đầu đếm 30 giây.
+    // Đã bấm CÓ: giữ lại.
+    // Chưa bấm CÓ: sau 15 giây mới loại khỏi mẫu số.
     if (!s.votedYes) {
       scheduleRemovalIfUnvoted(sessionId);
     }
@@ -227,5 +219,5 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`QR poll V5 running on port ${PORT}`);
+  console.log(`QR poll V7 running on port ${PORT}`);
 });
