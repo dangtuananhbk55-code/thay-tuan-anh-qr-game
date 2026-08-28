@@ -1,7 +1,7 @@
 {
-  "name": "thay-tuan-anh-qr-game-v5",
-  "version": "5.0.0",
-  "description": "Realtime QR poll where every page visit is a new voting session",
+  "name": "thay-tuan-anh-qr-game-v7",
+  "version": "7.0.0",
+  "description": "Realtime QR poll with independent phone games and 15-second inactive timeout",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
