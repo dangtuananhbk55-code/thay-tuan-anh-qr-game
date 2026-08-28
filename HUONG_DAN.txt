@@ -1,0 +1,27 @@
+MINI-GAME QR – “THẦY TUẤN ANH DẠY CÓ HAY KHÔNG?”
+
+CÁCH DÙNG NHANH TRONG LỚP
+
+1. Máy tính trình chiếu và điện thoại học viên phải cùng một mạng Wi‑Fi.
+2. Cài Node.js LTS nếu máy chưa có: https://nodejs.org/
+3. Giải nén thư mục này.
+4. Nhấp đúp file:
+   START_GAME.bat
+5. Lần đầu, chương trình sẽ tự cài thư viện rồi khởi động.
+6. Trình duyệt sẽ tự mở màn hình máy chiếu.
+7. Trên màn hình có QR.
+8. Mọi người quét cùng mã QR đó và bình chọn.
+
+CƠ CHẾ
+- Mỗi lần ai đó bấm KHÔNG:
+  + nút KHÔNG trên máy chiếu chạy sang vị trí khác;
+  + nút KHÔNG nhỏ dần;
+  + nút CÓ lớn dần.
+- Khi bấm CÓ, tổng số lượt CÓ tăng và màn hình có hiệu ứng ăn mừng.
+- Sau nhiều lần bấm KHÔNG, nút KHÔNG biến mất.
+- Nút RESET ở góc dưới bên phải màn hình trình chiếu để chơi lại.
+
+LƯU Ý
+- Windows Firewall có thể hỏi cho phép Node.js truy cập mạng.
+  Hãy chọn Allow access / Cho phép truy cập trên mạng Private.
+- Nếu điện thoại không mở được QR, hãy chắc chắn mọi thiết bị cùng Wi‑Fi.

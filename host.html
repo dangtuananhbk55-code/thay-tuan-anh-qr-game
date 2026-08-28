@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Màn hình bình chọn - Thầy Tuấn Anh</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;width:100vw;height:100vh;overflow:hidden;
+  font-family:Arial,Helvetica,sans-serif;
+  background:linear-gradient(135deg,#edf6ff,#fff7fb,#f5efff)
+}
+.header{
+  height:25vh;padding:28px 44px;display:flex;align-items:center;justify-content:space-between;gap:30px
+}
+.question h1{font-size:clamp(36px,5.6vw,76px);margin:0;color:#1f2937}
+.question p{font-size:clamp(18px,2.2vw,30px);margin:10px 0;color:#667085}
+.qrbox{
+  background:white;padding:12px;border-radius:20px;box-shadow:0 14px 40px rgba(0,0,0,.14);
+  text-align:center;flex:none
+}
+.qrbox img{width:min(16vw,190px);height:min(16vw,190px);display:block}
+.qrbox div{font-size:14px;font-weight:800;margin-top:5px;color:#344054}
+.arena{
+  height:61vh;position:relative;border-top:1px solid rgba(0,0,0,.05);
+  border-bottom:1px solid rgba(0,0,0,.05);overflow:hidden
+}
+button{
+  border:0;border-radius:999px;font-weight:900;position:absolute;white-space:nowrap;
+  transition:left .38s cubic-bezier(.2,.8,.2,1),top .38s cubic-bezier(.2,.8,.2,1),
+             transform .25s ease,opacity .25s ease
+}
+#yes{
+  left:34%;top:48%;transform:translate(-50%,-50%);
+  background:#16a34a;color:white;padding:25px 50px;font-size:clamp(30px,4vw,60px);
+  box-shadow:0 16px 38px rgba(22,163,74,.28);z-index:4
+}
+#no{
+  left:68%;top:48%;transform:translate(-50%,-50%);
+  background:#ef4444;color:white;padding:23px 46px;font-size:clamp(27px,3.5vw,52px);z-index:5
+}
+.footer{
+  height:14vh;display:flex;justify-content:center;align-items:center;gap:55px;
+  font-size:clamp(22px,2.7vw,40px);font-weight:900
+}
+.pill{
+  background:white;border-radius:999px;padding:14px 30px;
+  box-shadow:0 9px 28px rgba(0,0,0,.09)
+}
+.controls{position:fixed;right:18px;bottom:16px;z-index:30}
+.controls button{position:static;background:#111827;color:white;padding:10px 17px;font-size:14px;opacity:.35}
+.controls button:hover{opacity:1}
+.confetti{position:fixed;top:-8vh;z-index:50;pointer-events:none;animation:fall 3s ease-out forwards}
+@keyframes fall{to{transform:translateY(116vh) rotate(600deg);opacity:0}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="question">
+    <h1>🎓 Thầy Tuấn Anh dạy có hay không?</h1>
+    <p>Quét QR để bình chọn — cả lớp cùng vào một phòng 😄</p>
+  </div>
+  <div class="qrbox">
+    <img src="/qr" alt="QR code">
+    <div>QUÉT QR ĐỂ BÌNH CHỌN</div>
+  </div>
+</div>
+
+<div class="arena" id="arena">
+  <button id="yes">CÓ 👍</button>
+  <button id="no">KHÔNG 😝</button>
+</div>
+
+<div class="footer">
+  <div class="pill">✅ CÓ: <span id="yesCount">0</span></div>
+  <div class="pill">🏃 KHÔNG đã chạy: <span id="noClicks">0</span> lần</div>
+</div>
+
+<div class="controls"><button id="reset">RESET</button></div>
+
+<script>
+const socket = io();
+const yes = document.getElementById("yes");
+const no = document.getElementById("no");
+const yesCount = document.getElementById("yesCount");
+const noClicks = document.getElementById("noClicks");
+const reset = document.getElementById("reset");
+
+let lastNo = 0, lastYes = 0;
+
+function moveNo(){
+  no.style.left = (8 + Math.random()*84) + "%";
+  no.style.top  = (12 + Math.random()*72) + "%";
+}
+
+function confetti(delta){
+  const items=["🎉","👏","✨","👍","❤️"];
+  for(let i=0;i<Math.min(delta*12,45);i++){
+    const e=document.createElement("div");
+    e.className="confetti";
+    e.textContent=items[Math.floor(Math.random()*items.length)];
+    e.style.left=Math.random()*100+"vw";
+    e.style.fontSize=(22+Math.random()*38)+"px";
+    e.style.animationDelay=(Math.random()*.5)+"s";
+    document.body.appendChild(e);
+    setTimeout(()=>e.remove(),3600);
+  }
+}
+
+function render(state){
+  yesCount.textContent=state.yesCount;
+  noClicks.textContent=state.noClicks;
+
+  const yesScale=Math.min(1+state.noClicks*.055+state.yesCount*.02,3.7);
+  const noScale=Math.max(1-state.noClicks*.033,.16);
+
+  yes.style.transform=`translate(-50%,-50%) scale(${yesScale})`;
+  no.style.transform=`translate(-50%,-50%) scale(${noScale})`;
+  no.style.opacity=Math.max(1-state.noClicks*.024,.14);
+
+  if(state.noClicks>lastNo){
+    moveNo();
+    lastNo=state.noClicks;
+  }
+
+  if(state.noClicks>=28){
+    no.style.display="none";
+  } else {
+    no.style.display="block";
+  }
+
+  if(state.yesCount>lastYes){
+    confetti(state.yesCount-lastYes);
+    lastYes=state.yesCount;
+  }
+}
+
+socket.on("state", render);
+reset.addEventListener("click", ()=>socket.emit("reset"));
+</script>
+</body>
+</html>

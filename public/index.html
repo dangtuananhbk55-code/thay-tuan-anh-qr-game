@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Bình chọn cuối giờ 😄</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+  font-family:Arial,Helvetica,sans-serif;
+  background:linear-gradient(135deg,#eef7ff,#fff7fb,#f6f2ff);
+  overflow:hidden
+}
+.card{
+  width:min(94vw,760px);min-height:620px;background:rgba(255,255,255,.96);
+  border-radius:30px;box-shadow:0 22px 70px rgba(0,0,0,.14);
+  padding:34px 20px;text-align:center;position:relative;overflow:hidden
+}
+.logo{font-size:64px}
+h1{font-size:clamp(30px,7vw,56px);margin:10px 0 12px;color:#1f2937}
+.sub{font-size:18px;color:#667085;margin-bottom:12px}
+.arena{position:relative;height:340px;margin-top:8px}
+button{
+  border:0;border-radius:999px;font-weight:900;cursor:pointer;
+  transition:transform .18s ease, opacity .18s ease, left .24s ease, top .24s ease;
+  -webkit-tap-highlight-color:transparent;white-space:nowrap
+}
+#yesBtn{
+  position:absolute;left:37%;top:53%;transform:translate(-50%,-50%) scale(1);
+  padding:20px 38px;font-size:27px;background:#16a34a;color:white;
+  box-shadow:0 12px 30px rgba(22,163,74,.28);z-index:5
+}
+#noBtn{
+  position:absolute;left:65%;top:53%;transform:translate(-50%,-50%) scale(1);
+  padding:18px 34px;font-size:23px;background:#ef4444;color:white;z-index:6
+}
+.stats{font-size:16px;color:#475467}
+.note{font-size:13px;color:#98a2b3;margin-top:8px}
+.done{
+  position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.97);z-index:20;padding:30px
+}
+.done .box{animation:pop .45s ease}
+.done h2{font-size:clamp(34px,8vw,62px);color:#16a34a;margin:10px 0}
+.done p{font-size:20px;color:#475467}
+@keyframes pop{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">🎓😄</div>
+  <h1>Thầy Tuấn Anh dạy có hay không?</h1>
+  <div class="sub">Bình chọn vui cuối giờ — chọn thật lòng nhé 😎</div>
+
+  <div class="arena" id="arena">
+    <button id="yesBtn">CÓ 👍</button>
+    <button id="noBtn">KHÔNG 😝</button>
+  </div>
+
+  <div class="stats">
+    CÓ: <b id="yesCount">0</b> ·
+    KHÔNG đã bị bấm: <b id="noClicks">0</b> lần
+  </div>
+  <div class="note">Mỗi lần bấm KHÔNG, nút này sẽ chạy và nhỏ dần 😆</div>
+
+  <div class="done" id="done">
+    <div class="box">
+      <div style="font-size:70px">🎉👏</div>
+      <h2>Cảm ơn em! 😎</h2>
+      <p>Thầy ghi nhận phiếu CÓ này ❤️</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const socket = io();
+const yesBtn = document.getElementById("yesBtn");
+const noBtn = document.getElementById("noBtn");
+const arena = document.getElementById("arena");
+const yesCount = document.getElementById("yesCount");
+const noClicks = document.getElementById("noClicks");
+const done = document.getElementById("done");
+
+let lastNo = 0;
+let yesSent = false;
+
+function moveNo(){
+  const rect = arena.getBoundingClientRect();
+  const maxX = Math.max(80, rect.width - 120);
+  const maxY = Math.max(80, rect.height - 70);
+  noBtn.style.left = (45 + Math.random() * (maxX - 45)) + "px";
+  noBtn.style.top = (35 + Math.random() * (maxY - 35)) + "px";
+}
+
+function render(state){
+  yesCount.textContent = state.yesCount;
+  noClicks.textContent = state.noClicks;
+
+  const yesScale = Math.min(1 + state.noClicks*0.055, 3.2);
+  const noScale = Math.max(1 - state.noClicks*0.035, .18);
+
+  yesBtn.style.transform = `translate(-50%,-50%) scale(${yesScale})`;
+  noBtn.style.transform = `translate(-50%,-50%) scale(${noScale})`;
+  noBtn.style.opacity = Math.max(1-state.noClicks*.025,.15);
+
+  if(state.noClicks > lastNo){
+    moveNo();
+    lastNo = state.noClicks;
+  }
+
+  if(state.noClicks >= 28){
+    noBtn.style.display = "none";
+  }
+}
+
+yesBtn.addEventListener("click", ()=>{
+  if(!yesSent){
+    yesSent = true;
+    socket.emit("yes");
+    done.style.display = "flex";
+  }
+});
+
+noBtn.addEventListener("click", ()=>{
+  socket.emit("no");
+  moveNo();
+});
+
+socket.on("state", render);
+</script>
+</body>
+</html>
