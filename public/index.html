@@ -10,18 +10,23 @@
 body{
   margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
   font-family:Arial,Helvetica,sans-serif;
-  background:radial-gradient(circle at top,#311329,#130c15 62%,#08090c);
+  background:
+    radial-gradient(circle at 20% 10%, rgba(103,80,164,.28), transparent 30%),
+    radial-gradient(circle at 85% 20%, rgba(231,76,120,.20), transparent 28%),
+    linear-gradient(145deg,#0f1118,#17131c 48%,#0b0d12);
   color:#fff;overflow:hidden
 }
 .card{
   width:min(94vw,760px);min-height:640px;padding:34px 22px;
-  background:rgba(15,17,22,.94);border:1px solid rgba(255,255,255,.1);
-  border-radius:30px;box-shadow:0 24px 80px rgba(0,0,0,.5);
+  background:linear-gradient(180deg,rgba(29,31,41,.96),rgba(17,18,24,.96));
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:32px;
+  box-shadow:0 28px 90px rgba(0,0,0,.52), inset 0 1px 0 rgba(255,255,255,.04);
   text-align:center;position:relative;overflow:hidden
 }
 .icon{font-size:60px}
-h1{font-size:clamp(30px,7vw,54px);margin:8px 0 10px}
-.sub{font-size:17px;color:#b7b7bf;margin-bottom:8px}
+h1{font-size:clamp(29px,6.5vw,52px);margin:8px 0 10px}
+.sub{font-size:17px;color:#c7c9d3;margin-bottom:8px}
 .arena{position:relative;height:350px;margin-top:10px}
 button{
   border:0;border-radius:999px;font-weight:900;cursor:pointer;position:absolute;
@@ -30,34 +35,40 @@ button{
 }
 #yesBtn{
   left:34%;top:53%;transform:translate(-50%,-50%) scale(1);
-  padding:20px 34px;font-size:24px;background:#10a84b;color:white;
+  padding:20px 34px;font-size:24px;background:linear-gradient(135deg,#1bbf62,#0d9146);color:white;
   box-shadow:0 0 28px rgba(16,168,75,.35);z-index:4
 }
 #noBtn{
   left:68%;top:53%;transform:translate(-50%,-50%) scale(1);
-  padding:20px 34px;font-size:24px;background:#ef3f47;color:white;
+  padding:20px 34px;font-size:24px;background:linear-gradient(135deg,#ff5b63,#d9343d);color:white;
   box-shadow:0 0 24px rgba(239,63,71,.25);z-index:5
 }
 .live{
   display:grid;grid-template-columns:repeat(2,1fr);gap:10px;
   font-size:15px;color:#d0d2d8
 }
-.stat{background:#1b1e25;border-radius:16px;padding:12px}
+.stat{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:12px}
 .stat b{font-size:22px;color:white}
-.note{font-size:13px;color:#858891;margin-top:12px}
-.done{
+.note{font-size:13px;color:#9fa3b2;margin-top:12px}
+.overlay{
   position:absolute;inset:0;display:none;align-items:center;justify-content:center;
-  background:rgba(8,9,12,.97);z-index:20;padding:24px
+  background:rgba(8,9,12,.98);z-index:20;padding:25px
 }
-.done h2{font-size:44px;color:#1ed760;margin:10px 0}
-.done p{font-size:20px;color:#d8d8dc}
+.overlay h2{
+  font-size:clamp(32px,7vw,48px);color:#1ed760;margin:10px 0
+}
+.overlay p{
+  font-size:clamp(18px,4.5vw,23px);color:#e4e5e8;line-height:1.45
+}
+.closed h2{color:#f7c948}
 </style>
 </head>
 <body>
 <div class="card">
   <div class="icon">🎓😄</div>
-  <h1>Thầy Tuấn Anh dạy có hay không?</h1>
-  <div class="sub">Chọn thật lòng nhé 😎</div>
+
+  <h1>Thầy Tuấn Anh dạy có hay, có dễ hiểu không?</h1>
+  <div class="sub">Quý Thầy Cô cùng bình chọn vui nhé 😄</div>
 
   <div class="arena">
     <button id="yesBtn">CÓ 👍</button>
@@ -73,11 +84,19 @@ button{
     Mỗi lượt mở trang bắt đầu lại với hai nút CÓ / KHÔNG như nhau.
   </div>
 
-  <div class="done" id="done">
+  <div class="overlay" id="thanks">
     <div>
       <div style="font-size:76px">🎉👏</div>
       <h2>Đã ghi nhận CÓ!</h2>
-      <p>Cảm ơn em đã tham gia bình chọn 😎</p>
+      <p>Cảm ơn Quý Thầy Cô đã tham gia bình chọn.</p>
+    </div>
+  </div>
+
+  <div class="overlay closed" id="closed">
+    <div>
+      <div style="font-size:76px">🔒</div>
+      <h2>Bình chọn đã kết thúc</h2>
+      <p>Cảm ơn Quý Thầy Cô đã tham gia bình chọn.</p>
     </div>
   </div>
 </div>
@@ -89,9 +108,9 @@ const yesBtn = document.getElementById("yesBtn");
 const noBtn = document.getElementById("noBtn");
 const participantsEl = document.getElementById("participants");
 const yesCountEl = document.getElementById("yesCount");
-const done = document.getElementById("done");
+const thanks = document.getElementById("thanks");
+const closed = document.getElementById("closed");
 
-// Mỗi lần mở/tải lại trang = session mới.
 function newSessionId(){
   if(window.crypto && crypto.randomUUID){
     return crypto.randomUUID();
@@ -101,14 +120,13 @@ function newSessionId(){
 
 let sessionId = newSessionId();
 let alreadyVoted = false;
-
-// QUAN TRỌNG:
-// Biến này CHỈ thuộc điện thoại hiện tại.
-// Không lấy tổng KHÔNG từ server.
 let localNoAttempts = 0;
+let isClosed = false;
 
 function join(){
-  socket.emit("joinSession", sessionId);
+  if(!isClosed){
+    socket.emit("joinSession", sessionId);
+  }
 }
 
 socket.on("connect", join);
@@ -163,55 +181,72 @@ function renderLocalButtons(){
     noBtn.textContent = "KHÔNG? 🥹";
   }
 
-  // Trên điện thoại KHÔNG không biến mất quá sớm.
-  // Cho chơi đến 12 lần mới biến mất.
   if(localNoAttempts >= 12){
     noBtn.style.display = "none";
   }
 }
 
-// State từ server chỉ dùng để hiện số liệu.
-// KHÔNG dùng globalNoAttempts để chỉnh nút trên điện thoại.
+function closePhonePoll(){
+  isClosed = true;
+  yesBtn.style.pointerEvents = "none";
+  noBtn.style.pointerEvents = "none";
+
+  // Nếu người này đã vừa bấm CÓ thì giữ màn hình cảm ơn.
+  // Người chưa bấm CÓ sẽ thấy thông báo đã kết thúc.
+  if(!alreadyVoted){
+    closed.style.display = "flex";
+  }
+}
+
 socket.on("state", state => {
   participantsEl.textContent = state.participants;
   yesCountEl.textContent = state.yesCount;
+
+  if(state.pollFinished){
+    closePhonePoll();
+  }
 });
 
 yesBtn.addEventListener("click", () => {
-  if(alreadyVoted) return;
+  if(alreadyVoted || isClosed) return;
 
   alreadyVoted = true;
   socket.emit("voteYes", sessionId);
 
   yesBtn.textContent = "ĐÃ CHỌN CÓ ✅";
   yesBtn.style.pointerEvents = "none";
-  done.style.display = "flex";
+  thanks.style.display = "flex";
 });
 
 noBtn.addEventListener("click", () => {
-  localNoAttempts += 1;
+  if(isClosed) return;
 
-  // Gửi 1 lượt KHÔNG lên HOST để cộng tổng.
+  localNoAttempts += 1;
   socket.emit("tryNo");
 
-  // Chỉ thay đổi nút của điện thoại này.
   moveLocalNo();
   renderLocalButtons();
 });
 
+socket.on("pollClosed", closePhonePoll);
+socket.on("pollFinished", closePhonePoll);
+
 socket.on("pollReset", () => {
   sessionId = newSessionId();
   alreadyVoted = false;
+  isClosed = false;
+
+  thanks.style.display = "none";
+  closed.style.display = "none";
 
   yesBtn.textContent = "CÓ 👍";
   yesBtn.style.pointerEvents = "auto";
-  done.style.display = "none";
+  noBtn.style.pointerEvents = "auto";
 
   resetLocalButtons();
   join();
 });
 
-// Khi vừa vào trang, luôn bắt đầu hai nút ngang nhau.
 resetLocalButtons();
 </script>
 </body>
