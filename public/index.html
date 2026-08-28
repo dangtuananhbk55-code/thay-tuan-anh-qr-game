@@ -7,128 +7,45 @@
 <script src="/socket.io/socket.io.js"></script>
 <style>
 *{box-sizing:border-box}
-body{
-  margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
-  font-family:Arial,Helvetica,sans-serif;
-  background:linear-gradient(135deg,#eef7ff,#fff7fb,#f6f2ff);
-  overflow:hidden
-}
-.card{
-  width:min(94vw,760px);min-height:620px;background:rgba(255,255,255,.96);
-  border-radius:30px;box-shadow:0 22px 70px rgba(0,0,0,.14);
-  padding:34px 20px;text-align:center;position:relative;overflow:hidden
-}
-.logo{font-size:64px}
-h1{font-size:clamp(30px,7vw,56px);margin:10px 0 12px;color:#1f2937}
-.sub{font-size:18px;color:#667085;margin-bottom:12px}
-.arena{position:relative;height:340px;margin-top:8px}
-button{
-  border:0;border-radius:999px;font-weight:900;cursor:pointer;
-  transition:transform .18s ease, opacity .18s ease, left .24s ease, top .24s ease;
-  -webkit-tap-highlight-color:transparent;white-space:nowrap
-}
-#yesBtn{
-  position:absolute;left:37%;top:53%;transform:translate(-50%,-50%) scale(1);
-  padding:20px 38px;font-size:27px;background:#16a34a;color:white;
-  box-shadow:0 12px 30px rgba(22,163,74,.28);z-index:5
-}
-#noBtn{
-  position:absolute;left:65%;top:53%;transform:translate(-50%,-50%) scale(1);
-  padding:18px 34px;font-size:23px;background:#ef4444;color:white;z-index:6
-}
-.stats{font-size:16px;color:#475467}
-.note{font-size:13px;color:#98a2b3;margin-top:8px}
-.done{
-  position:absolute;inset:0;display:none;align-items:center;justify-content:center;
-  background:rgba(255,255,255,.97);z-index:20;padding:30px
-}
-.done .box{animation:pop .45s ease}
-.done h2{font-size:clamp(34px,8vw,62px);color:#16a34a;margin:10px 0}
-.done p{font-size:20px;color:#475467}
-@keyframes pop{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;background:linear-gradient(135deg,#eef7ff,#fff7fb,#f6f2ff);overflow:hidden}
+.card{width:min(94vw,760px);min-height:620px;background:#fff;border-radius:30px;box-shadow:0 22px 70px rgba(0,0,0,.14);padding:34px 20px;text-align:center;position:relative;overflow:hidden}
+.logo{font-size:64px} h1{font-size:clamp(30px,7vw,56px);margin:10px 0;color:#1f2937}.sub{font-size:18px;color:#667085}
+.arena{position:relative;height:350px;margin-top:10px}
+button{border:0;border-radius:999px;font-weight:900;cursor:pointer;position:absolute;transition:all .22s ease;white-space:nowrap}
+#yesBtn{left:36%;top:52%;transform:translate(-50%,-50%);padding:20px 38px;font-size:27px;background:#16a34a;color:#fff;z-index:4}
+#noBtn{left:67%;top:52%;transform:translate(-50%,-50%);padding:18px 34px;font-size:23px;background:#ef4444;color:#fff;z-index:5}
+.stats{font-size:16px;color:#475467}.done{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#fff;z-index:20}
 </style>
 </head>
 <body>
 <div class="card">
   <div class="logo">🎓😄</div>
   <h1>Thầy Tuấn Anh dạy có hay không?</h1>
-  <div class="sub">Bình chọn vui cuối giờ — chọn thật lòng nhé 😎</div>
-
+  <div class="sub">Chọn thật lòng nhé 😎</div>
   <div class="arena" id="arena">
     <button id="yesBtn">CÓ 👍</button>
     <button id="noBtn">KHÔNG 😝</button>
   </div>
-
-  <div class="stats">
-    CÓ: <b id="yesCount">0</b> ·
-    KHÔNG đã bị bấm: <b id="noClicks">0</b> lần
-  </div>
-  <div class="note">Mỗi lần bấm KHÔNG, nút này sẽ chạy và nhỏ dần 😆</div>
-
-  <div class="done" id="done">
-    <div class="box">
-      <div style="font-size:70px">🎉👏</div>
-      <h2>Cảm ơn em! 😎</h2>
-      <p>Thầy ghi nhận phiếu CÓ này ❤️</p>
-    </div>
-  </div>
+  <div class="stats">✅ CÓ: <b id="yesCount">0</b> · 🏃 KHÔNG: <b id="noClicks">0</b></div>
+  <div class="done" id="done"><div><div style="font-size:80px">🎉👏</div><h2>Cảm ơn em! 😎</h2></div></div>
 </div>
-
 <script>
-const socket = io();
-const yesBtn = document.getElementById("yesBtn");
-const noBtn = document.getElementById("noBtn");
-const arena = document.getElementById("arena");
-const yesCount = document.getElementById("yesCount");
-const noClicks = document.getElementById("noClicks");
-const done = document.getElementById("done");
-
-let lastNo = 0;
-let yesSent = false;
-
-function moveNo(){
-  const rect = arena.getBoundingClientRect();
-  const maxX = Math.max(80, rect.width - 120);
-  const maxY = Math.max(80, rect.height - 70);
-  noBtn.style.left = (45 + Math.random() * (maxX - 45)) + "px";
-  noBtn.style.top = (35 + Math.random() * (maxY - 35)) + "px";
+const socket=io(), yesBtn=document.getElementById("yesBtn"), noBtn=document.getElementById("noBtn"),
+arena=document.getElementById("arena"), yesCount=document.getElementById("yesCount"),
+noClicks=document.getElementById("noClicks"), done=document.getElementById("done");
+let lastNo=0, yesSent=false;
+function moveNo(){noBtn.style.left=(10+Math.random()*80)+"%";noBtn.style.top=(12+Math.random()*72)+"%";}
+function render(s){
+ yesCount.textContent=s.yesCount; noClicks.textContent=s.noClicks;
+ let ys=Math.min(1+s.noClicks*.06,3.2), ns=Math.max(1-s.noClicks*.035,.16);
+ yesBtn.style.transform=`translate(-50%,-50%) scale(${ys})`;
+ noBtn.style.transform=`translate(-50%,-50%) scale(${ns})`;
+ if(s.noClicks>lastNo){moveNo();lastNo=s.noClicks}
+ noBtn.style.display=s.noClicks>=28?"none":"block";
 }
-
-function render(state){
-  yesCount.textContent = state.yesCount;
-  noClicks.textContent = state.noClicks;
-
-  const yesScale = Math.min(1 + state.noClicks*0.055, 3.2);
-  const noScale = Math.max(1 - state.noClicks*0.035, .18);
-
-  yesBtn.style.transform = `translate(-50%,-50%) scale(${yesScale})`;
-  noBtn.style.transform = `translate(-50%,-50%) scale(${noScale})`;
-  noBtn.style.opacity = Math.max(1-state.noClicks*.025,.15);
-
-  if(state.noClicks > lastNo){
-    moveNo();
-    lastNo = state.noClicks;
-  }
-
-  if(state.noClicks >= 28){
-    noBtn.style.display = "none";
-  }
-}
-
-yesBtn.addEventListener("click", ()=>{
-  if(!yesSent){
-    yesSent = true;
-    socket.emit("yes");
-    done.style.display = "flex";
-  }
-});
-
-noBtn.addEventListener("click", ()=>{
-  socket.emit("no");
-  moveNo();
-});
-
-socket.on("state", render);
+yesBtn.onclick=()=>{if(!yesSent){yesSent=true;socket.emit("yes");done.style.display="flex"}};
+noBtn.onclick=()=>{socket.emit("no");moveNo()};
+socket.on("state",render);
 </script>
 </body>
 </html>
