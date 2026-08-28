@@ -158,9 +158,7 @@ button{
 </div>
 
 <div class="progressWrap">
-  <div class="track">
-    <div class="bar" id="bar"></div>
-  </div>
+  <div class="track"><div class="bar" id="bar"></div></div>
 
   <div class="scale">
     <span>0%</span><span>25%</span><span>50%</span>
@@ -186,7 +184,7 @@ const fractionEl = document.getElementById("fraction");
 const bar = document.getElementById("bar");
 const finalMsg = document.getElementById("finalMsg");
 
-let lastNoAttempts = 0;
+let lastGlobalNoAttempts = 0;
 let lastYesCount = 0;
 let celebrated100 = false;
 
@@ -221,11 +219,12 @@ function render(state){
 
   bar.style.width = state.yesPercent + "%";
 
+  // HOST dùng tổng số lần KHÔNG của cả lớp.
   const yesScale =
-    Math.min(1 + state.noAttempts*.055 + state.yesCount*.015, 3.6);
+    Math.min(1 + state.globalNoAttempts*.055 + state.yesCount*.015, 3.6);
 
   const noScale =
-    Math.max(1 - state.noAttempts*.035, .15);
+    Math.max(1 - state.globalNoAttempts*.035, .15);
 
   yes.style.transform =
     `translate(-50%,-50%) scale(${yesScale})`;
@@ -234,15 +233,16 @@ function render(state){
     `translate(-50%,-50%) scale(${noScale})`;
 
   no.style.opacity =
-    Math.max(1 - state.noAttempts*.025, .13);
+    Math.max(1 - state.globalNoAttempts*.025, .13);
 
-  if(state.noAttempts > lastNoAttempts){
+  if(state.globalNoAttempts > lastGlobalNoAttempts){
     moveNo();
-    lastNoAttempts = state.noAttempts;
+    lastGlobalNoAttempts = state.globalNoAttempts;
   }
 
+  // Trên slide có thể biến mất sau nhiều lần cả lớp bấm KHÔNG.
   no.style.display =
-    state.noAttempts >= 28 ? "none" : "block";
+    state.globalNoAttempts >= 28 ? "none" : "block";
 
   if(state.yesCount > lastYesCount){
     confetti(Math.min(
@@ -276,18 +276,16 @@ function render(state){
 socket.on("state", render);
 
 socket.on("pollReset", () => {
-  lastNoAttempts = 0;
+  lastGlobalNoAttempts = 0;
   lastYesCount = 0;
   celebrated100 = false;
 });
 
-document
-  .getElementById("reset")
-  .addEventListener("click", () => {
-    if(confirm("Reset toàn bộ phòng bình chọn?")){
-      socket.emit("resetPoll");
-    }
-  });
+document.getElementById("reset").addEventListener("click", () => {
+  if(confirm("Reset toàn bộ phòng bình chọn?")){
+    socket.emit("resetPoll");
+  }
+});
 </script>
 </body>
 </html>
