@@ -2,50 +2,188 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bình chọn cuối giờ 😄</title>
 <script src="/socket.io/socket.io.js"></script>
 <style>
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;background:linear-gradient(135deg,#eef7ff,#fff7fb,#f6f2ff);overflow:hidden}
-.card{width:min(94vw,760px);min-height:620px;background:#fff;border-radius:30px;box-shadow:0 22px 70px rgba(0,0,0,.14);padding:34px 20px;text-align:center;position:relative;overflow:hidden}
-.logo{font-size:64px} h1{font-size:clamp(30px,7vw,56px);margin:10px 0;color:#1f2937}.sub{font-size:18px;color:#667085}
+body{
+  margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+  font-family:Arial,Helvetica,sans-serif;
+  background:radial-gradient(circle at top,#311329,#130c15 62%,#08090c);
+  color:#fff;overflow:hidden
+}
+.card{
+  width:min(94vw,760px);min-height:640px;padding:34px 22px;
+  background:rgba(15,17,22,.94);border:1px solid rgba(255,255,255,.1);
+  border-radius:30px;box-shadow:0 24px 80px rgba(0,0,0,.5);
+  text-align:center;position:relative;overflow:hidden
+}
+.icon{font-size:60px}
+h1{font-size:clamp(30px,7vw,54px);margin:8px 0 10px}
+.sub{font-size:17px;color:#b7b7bf;margin-bottom:8px}
 .arena{position:relative;height:350px;margin-top:10px}
-button{border:0;border-radius:999px;font-weight:900;cursor:pointer;position:absolute;transition:all .22s ease;white-space:nowrap}
-#yesBtn{left:36%;top:52%;transform:translate(-50%,-50%);padding:20px 38px;font-size:27px;background:#16a34a;color:#fff;z-index:4}
-#noBtn{left:67%;top:52%;transform:translate(-50%,-50%);padding:18px 34px;font-size:23px;background:#ef4444;color:#fff;z-index:5}
-.stats{font-size:16px;color:#475467}.done{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#fff;z-index:20}
+button{
+  border:0;border-radius:999px;font-weight:900;cursor:pointer;position:absolute;
+  transition:left .24s ease,top .24s ease,transform .22s ease,opacity .22s ease;
+  white-space:nowrap;-webkit-tap-highlight-color:transparent
+}
+#yesBtn{
+  left:35%;top:53%;transform:translate(-50%,-50%);
+  padding:22px 40px;font-size:28px;background:#10a84b;color:white;
+  box-shadow:0 0 28px rgba(16,168,75,.35);z-index:4
+}
+#noBtn{
+  left:68%;top:53%;transform:translate(-50%,-50%);
+  padding:18px 32px;font-size:22px;background:#ef3f47;color:white;
+  box-shadow:0 0 24px rgba(239,63,71,.25);z-index:5
+}
+.live{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:10px;
+  font-size:15px;color:#d0d2d8
+}
+.stat{background:#1b1e25;border-radius:16px;padding:12px}
+.stat b{font-size:22px;color:white}
+.note{font-size:13px;color:#858891;margin-top:12px}
+.done{
+  position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  background:rgba(8,9,12,.97);z-index:20;padding:24px
+}
+.done h2{font-size:44px;color:#1ed760;margin:10px 0}
+.done p{font-size:20px;color:#d8d8dc}
 </style>
 </head>
 <body>
 <div class="card">
-  <div class="logo">🎓😄</div>
+  <div class="icon">🎓😄</div>
   <h1>Thầy Tuấn Anh dạy có hay không?</h1>
   <div class="sub">Chọn thật lòng nhé 😎</div>
-  <div class="arena" id="arena">
+
+  <div class="arena">
     <button id="yesBtn">CÓ 👍</button>
     <button id="noBtn">KHÔNG 😝</button>
   </div>
-  <div class="stats">✅ CÓ: <b id="yesCount">0</b> · 🏃 KHÔNG: <b id="noClicks">0</b></div>
-  <div class="done" id="done"><div><div style="font-size:80px">🎉👏</div><h2>Cảm ơn em! 😎</h2></div></div>
+
+  <div class="live">
+    <div class="stat">👥 Lượt tham gia<br><b id="participants">0</b></div>
+    <div class="stat">✅ Đã chọn CÓ<br><b id="yesCount">0</b></div>
+  </div>
+
+  <div class="note">
+    Mỗi lần mở lại trang được tính là một lượt tham gia mới.
+  </div>
+
+  <div class="done" id="done">
+    <div>
+      <div style="font-size:76px">🎉👏</div>
+      <h2>Đã ghi nhận CÓ!</h2>
+      <p>Cảm ơn em đã tham gia bình chọn 😎</p>
+    </div>
+  </div>
 </div>
+
 <script>
-const socket=io(), yesBtn=document.getElementById("yesBtn"), noBtn=document.getElementById("noBtn"),
-arena=document.getElementById("arena"), yesCount=document.getElementById("yesCount"),
-noClicks=document.getElementById("noClicks"), done=document.getElementById("done");
-let lastNo=0, yesSent=false;
-function moveNo(){noBtn.style.left=(10+Math.random()*80)+"%";noBtn.style.top=(12+Math.random()*72)+"%";}
-function render(s){
- yesCount.textContent=s.yesCount; noClicks.textContent=s.noClicks;
- let ys=Math.min(1+s.noClicks*.06,3.2), ns=Math.max(1-s.noClicks*.035,.16);
- yesBtn.style.transform=`translate(-50%,-50%) scale(${ys})`;
- noBtn.style.transform=`translate(-50%,-50%) scale(${ns})`;
- if(s.noClicks>lastNo){moveNo();lastNo=s.noClicks}
- noBtn.style.display=s.noClicks>=28?"none":"block";
+const socket = io();
+
+const yesBtn = document.getElementById("yesBtn");
+const noBtn = document.getElementById("noBtn");
+const participantsEl = document.getElementById("participants");
+const yesCountEl = document.getElementById("yesCount");
+const done = document.getElementById("done");
+
+// QUAN TRỌNG:
+// Không dùng localStorage.
+// Mỗi lần tải/mở trang -> tạo sessionId mới -> tính là lượt mới.
+function newSessionId(){
+  if(window.crypto && crypto.randomUUID){
+    return crypto.randomUUID();
+  }
+  return "s-" + Date.now() + "-" + Math.random().toString(36).slice(2);
 }
-yesBtn.onclick=()=>{if(!yesSent){yesSent=true;socket.emit("yes");done.style.display="flex"}};
-noBtn.onclick=()=>{socket.emit("no");moveNo()};
-socket.on("state",render);
+
+let sessionId = newSessionId();
+let alreadyVoted = false;
+let lastNoAttempts = 0;
+
+function join(){
+  socket.emit("joinSession", sessionId);
+}
+
+socket.on("connect", join);
+
+socket.on("joined", info => {
+  alreadyVoted = !!info.alreadyVotedYes;
+
+  if(alreadyVoted){
+    yesBtn.textContent = "ĐÃ CHỌN CÓ ✅";
+    yesBtn.style.pointerEvents = "none";
+  }else{
+    yesBtn.textContent = "CÓ 👍";
+    yesBtn.style.pointerEvents = "auto";
+  }
+});
+
+function moveNo(){
+  noBtn.style.left = (9 + Math.random()*82) + "%";
+  noBtn.style.top  = (12 + Math.random()*72) + "%";
+}
+
+function render(state){
+  participantsEl.textContent = state.participants;
+  yesCountEl.textContent = state.yesCount;
+
+  const yesScale = Math.min(1 + state.noAttempts*.055, 3.2);
+  const noScale = Math.max(1 - state.noAttempts*.035, .16);
+
+  yesBtn.style.transform =
+    `translate(-50%,-50%) scale(${yesScale})`;
+
+  noBtn.style.transform =
+    `translate(-50%,-50%) scale(${noScale})`;
+
+  noBtn.style.opacity =
+    Math.max(1 - state.noAttempts*.025, .14);
+
+  if(state.noAttempts > lastNoAttempts){
+    moveNo();
+    lastNoAttempts = state.noAttempts;
+  }
+
+  noBtn.style.display =
+    state.noAttempts >= 28 ? "none" : "block";
+}
+
+yesBtn.addEventListener("click", () => {
+  if(alreadyVoted) return;
+
+  alreadyVoted = true;
+  socket.emit("voteYes", sessionId);
+
+  yesBtn.textContent = "ĐÃ CHỌN CÓ ✅";
+  yesBtn.style.pointerEvents = "none";
+  done.style.display = "flex";
+});
+
+noBtn.addEventListener("click", () => {
+  socket.emit("tryNo");
+  moveNo();
+});
+
+socket.on("state", render);
+
+socket.on("pollReset", () => {
+  // Sau RESET, trang hiện tại trở thành một lượt mới.
+  sessionId = newSessionId();
+  alreadyVoted = false;
+  lastNoAttempts = 0;
+
+  yesBtn.textContent = "CÓ 👍";
+  yesBtn.style.pointerEvents = "auto";
+  done.style.display = "none";
+  noBtn.style.display = "block";
+
+  join();
+});
 </script>
 </body>
 </html>
