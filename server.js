@@ -10,24 +10,42 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 // =====================================================
-// LOGIC V6
+// LOGIC V8
 // =====================================================
-// Mỗi lần mở trang người chơi = 1 lượt tham gia mới.
-// Mỗi lượt có "game riêng" trên điện thoại.
-// Tổng số lần bấm KHÔNG của mọi lượt chỉ dùng cho màn hình HOST.
-// Điện thoại KHÔNG dùng tổng noAttempts để co/phóng nút.
+// - Mỗi lần mở trang người chơi = 1 lượt tham gia mới.
+// - Điện thoại có game CÓ/KHÔNG độc lập.
+// - HOST cộng tổng số lần bấm KHÔNG của tất cả điện thoại.
+// - Người chưa bấm CÓ mà thoát: sau 5 giây bị loại khỏi mẫu số.
+// - Người đã bấm CÓ: giữ kết quả đến khi phiên kết thúc/reset.
+// - FINISH: khóa phiên hiện tại, không nhận người/vote mới.
+// - Sau FINISH, lần kế tiếp mở/F5 /host sẽ tự reset về phiên mới = 0.
 
-const sessions = new Map();
+let sessions = new Map();
 // sessionId -> {
 //   socketId: string|null,
 //   votedYes: boolean,
 //   counted: boolean
 // }
 
-const leaveTimers = new Map();
+let leaveTimers = new Map();
 let globalNoAttempts = 0;
+let pollFinished = false;
 
-const LEAVE_GRACE_MS = 15000; // 15 giây
+const LEAVE_GRACE_MS = 5000;
+
+function clearAllLeaveTimers() {
+  for (const timer of leaveTimers.values()) {
+    clearTimeout(timer);
+  }
+  leaveTimers.clear();
+}
+
+function resetState() {
+  clearAllLeaveTimers();
+  sessions = new Map();
+  globalNoAttempts = 0;
+  pollFinished = false;
+}
 
 function getState() {
   let participants = 0;
@@ -48,7 +66,8 @@ function getState() {
     yesCount,
     noCount,
     yesPercent,
-    globalNoAttempts
+    globalNoAttempts,
+    pollFinished
   };
 }
 
@@ -68,9 +87,14 @@ function scheduleRemovalIfUnvoted(sessionId) {
   cancelLeaveTimer(sessionId);
 
   const s = sessions.get(sessionId);
-  if (!s || s.votedYes) return;
+  if (!s || s.votedYes || pollFinished) return;
 
   const timer = setTimeout(() => {
+    if (pollFinished) {
+      leaveTimers.delete(sessionId);
+      return;
+    }
+
     const current = sessions.get(sessionId);
     if (!current) return;
 
@@ -92,7 +116,16 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// ĐẶC BIỆT:
+// Nếu phiên trước đã FINISH, lần kế tiếp F5/mở lại /host
+// sẽ tự reset toàn bộ dữ liệu về 0 rồi bắt đầu phiên mới.
 app.get("/host", (req, res) => {
+  if (pollFinished) {
+    resetState();
+    io.emit("pollReset");
+    broadcast();
+  }
+
   res.sendFile(path.join(__dirname, "public", "host.html"));
 });
 
@@ -128,6 +161,12 @@ io.on("connection", (socket) => {
   socket.emit("state", getState());
 
   socket.on("joinSession", (sessionId) => {
+    if (pollFinished) {
+      socket.emit("pollClosed");
+      socket.emit("state", getState());
+      return;
+    }
+
     if (typeof sessionId !== "string" || sessionId.length < 8) return;
 
     cancelLeaveTimer(sessionId);
@@ -147,6 +186,7 @@ io.on("connection", (socket) => {
     socket.data.sessionId = sessionId;
 
     const s = sessions.get(sessionId);
+
     socket.emit("joined", {
       sessionId,
       alreadyVotedYes: s.votedYes
@@ -156,6 +196,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("voteYes", (sessionId) => {
+    if (pollFinished) {
+      socket.emit("pollClosed");
+      return;
+    }
+
     if (typeof sessionId !== "string" || sessionId.length < 8) return;
 
     cancelLeaveTimer(sessionId);
@@ -178,23 +223,31 @@ io.on("connection", (socket) => {
     broadcast();
   });
 
-  // Mỗi lần một điện thoại bấm KHÔNG:
-  // - server chỉ cộng tổng globalNoAttempts cho HOST
-  // - điện thoại tự xử lý kích thước bằng biến local riêng
   socket.on("tryNo", () => {
+    if (pollFinished) {
+      socket.emit("pollClosed");
+      return;
+    }
+
     globalNoAttempts += 1;
     broadcast();
   });
 
+  // FINISH:
+  // Khóa toàn bộ phiên hiện tại nhưng GIỮ kết quả trên màn hình.
+  socket.on("finishPoll", () => {
+    if (pollFinished) return;
+
+    pollFinished = true;
+    clearAllLeaveTimers();
+
+    io.emit("pollFinished", getState());
+    broadcast();
+  });
+
+  // RESET thủ công nếu cần chơi lại ngay mà không phải F5.
   socket.on("resetPoll", () => {
-    for (const timer of leaveTimers.values()) {
-      clearTimeout(timer);
-    }
-
-    leaveTimers.clear();
-    sessions.clear();
-    globalNoAttempts = 0;
-
+    resetState();
     io.emit("pollReset");
     broadcast();
   });
@@ -208,9 +261,7 @@ io.on("connection", (socket) => {
 
     s.socketId = null;
 
-    // Đã bấm CÓ: giữ lại.
-    // Chưa bấm CÓ: sau 15 giây mới loại khỏi mẫu số.
-    if (!s.votedYes) {
+    if (!s.votedYes && !pollFinished) {
       scheduleRemovalIfUnvoted(sessionId);
     }
   });
@@ -219,5 +270,5 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`QR poll V7 running on port ${PORT}`);
+  console.log(`QR poll V9 running on port ${PORT}`);
 });
