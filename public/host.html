@@ -11,22 +11,23 @@ body{
   margin:0;width:100vw;height:100vh;overflow:hidden;
   font-family:Arial,Helvetica,sans-serif;color:#fff;
   background:
-    radial-gradient(circle at 45% 15%,rgba(84,0,45,.5),transparent 34%),
-    linear-gradient(120deg,#23151d,#080a0e 72%,#11161b);
+    radial-gradient(circle at 18% 8%,rgba(93,63,211,.20),transparent 28%),
+    radial-gradient(circle at 76% 10%,rgba(226,61,114,.18),transparent 30%),
+    linear-gradient(135deg,#11131a,#17131b 50%,#0b0e13);
 }
 .header{
   height:20vh;padding:20px 32px;display:flex;align-items:flex-start;
   justify-content:space-between;gap:28px
 }
 .heading h1{
-  font-size:clamp(36px,5.2vw,76px);margin:0;font-weight:900;letter-spacing:-1px
+  font-size:clamp(34px,4.9vw,72px);margin:0;font-weight:900;letter-spacing:-1px
 }
 .heading p{
   font-size:clamp(17px,1.8vw,27px);color:#b9bac2;margin:12px 0 0
 }
 .qrbox{
-  background:#171a1f;padding:9px;border-radius:18px;text-align:center;
-  box-shadow:0 10px 34px rgba(0,0,0,.42);flex:none
+  background:rgba(255,255,255,.96);padding:10px;border-radius:22px;text-align:center;
+  box-shadow:0 14px 40px rgba(0,0,0,.32);flex:none;color:#111
 }
 .qrbox img{
   width:min(13.5vw,180px);height:min(13.5vw,180px);display:block;background:#fff
@@ -42,13 +43,13 @@ button{
 }
 #yes{
   left:34%;top:50%;transform:translate(-50%,-50%);
-  background:#12a84b;color:white;padding:34px 74px;
+  background:linear-gradient(135deg,#1cc865,#0e9e4d);color:white;padding:34px 74px;
   font-size:clamp(38px,5.6vw,88px);
   box-shadow:0 0 32px rgba(18,168,75,.25);z-index:4
 }
 #no{
   left:77%;top:48%;transform:translate(-50%,-50%);
-  background:#ef4148;color:white;padding:18px 34px;
+  background:linear-gradient(135deg,#ff5a63,#dc3440);color:white;padding:18px 34px;
   font-size:clamp(18px,2.4vw,38px);
   box-shadow:0 0 25px rgba(239,65,72,.2);z-index:5
 }
@@ -58,9 +59,9 @@ button{
   display:grid;grid-template-columns:repeat(4,1fr);gap:18px
 }
 .card{
-  border:1px solid rgba(255,255,255,.13);
-  background:rgba(20,23,30,.78);
-  border-radius:22px;padding:16px 20px;
+  border:1px solid rgba(255,255,255,.10);
+  background:linear-gradient(180deg,rgba(35,38,48,.88),rgba(21,23,30,.88));
+  border-radius:24px;padding:18px 20px;
   display:flex;flex-direction:column;justify-content:center;
   box-shadow:0 10px 30px rgba(0,0,0,.18)
 }
@@ -83,11 +84,11 @@ button{
   position:fixed;left:28px;right:28px;bottom:18px;height:7vh
 }
 .track{
-  height:16px;background:#2b2f35;border-radius:999px;overflow:hidden;
+  height:16px;background:rgba(255,255,255,.10);border-radius:999px;overflow:hidden;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)
 }
 .bar{
-  width:0%;height:100%;background:#19d05d;border-radius:999px;
+  width:0%;height:100%;background:linear-gradient(90deg,#16b95a,#2ad774);border-radius:999px;
   transition:width .5s ease
 }
 .scale{
@@ -98,11 +99,30 @@ button{
   text-align:center;margin-top:3px;font-size:clamp(16px,1.5vw,23px);
   color:#22d866;font-weight:800;min-height:26px
 }
-#reset{
-  position:fixed;right:10px;bottom:8px;z-index:30;border-radius:9px;
-  background:#272b31;color:#fff;padding:8px 12px;font-size:11px;opacity:.25
+
+.controls{
+  position:fixed;right:12px;bottom:8px;z-index:60;
+  display:flex;gap:7px
 }
-#reset:hover{opacity:1}
+.controls button{
+  position:static;border-radius:8px;padding:8px 11px;
+  font-size:11px;opacity:.42;cursor:pointer
+}
+.controls button:hover{opacity:1}
+#finish{
+  background:linear-gradient(135deg,#d84b42,#a8231b);color:white
+}
+#reset{
+  background:#30343d;color:white
+}
+
+.finishedBadge{
+  position:fixed;top:18px;left:50%;transform:translateX(-50%);
+  z-index:55;background:linear-gradient(135deg,#d84b42,#a8231b);color:#fff;border-radius:999px;
+  padding:10px 20px;font-weight:900;font-size:16px;
+  display:none;box-shadow:0 8px 25px rgba(0,0,0,.35)
+}
+
 .confetti{
   position:fixed;top:-8vh;z-index:50;pointer-events:none;
   animation:fall 3s ease-out forwards
@@ -114,13 +134,17 @@ button{
 </head>
 <body>
 
+<div class="finishedBadge" id="finishedBadge">
+  🔒 BÌNH CHỌN ĐÃ KẾT THÚC
+</div>
+
 <div class="header">
   <div class="heading">
-    <h1>🎓 Thầy Tuấn Anh dạy có hay không?</h1>
+    <h1>🎓 Thầy Tuấn Anh dạy có hay, có dễ hiểu không?</h1>
     <p>📱 Quét QR bằng 4G/5G/Wi‑Fi để cùng bình chọn</p>
   </div>
 
-  <div class="qrbox">
+  <div class="qrbox" id="qrbox">
     <img src="/qr" alt="QR bình chọn">
     <div>QUÉT ĐỂ BÌNH CHỌN</div>
   </div>
@@ -168,13 +192,18 @@ button{
   <div class="finalMsg" id="finalMsg"></div>
 </div>
 
-<button id="reset">RESET</button>
+<div class="controls">
+  <button id="finish">KẾT THÚC</button>
+  <button id="reset">RESET</button>
+</div>
 
 <script>
 const socket = io();
 
 const yes = document.getElementById("yes");
 const no = document.getElementById("no");
+const qrbox = document.getElementById("qrbox");
+const finishedBadge = document.getElementById("finishedBadge");
 
 const participantsEl = document.getElementById("participants");
 const yesCountEl = document.getElementById("yesCount");
@@ -187,6 +216,7 @@ const finalMsg = document.getElementById("finalMsg");
 let lastGlobalNoAttempts = 0;
 let lastYesCount = 0;
 let celebrated100 = false;
+let isFinished = false;
 
 function moveNo(){
   no.style.left = (58 + Math.random()*36) + "%";
@@ -208,6 +238,23 @@ function confetti(amount=30){
   }
 }
 
+function showFinishedUI(){
+  isFinished = true;
+
+  finishedBadge.style.display = "block";
+
+  qrbox.style.opacity = ".18";
+  qrbox.style.filter = "grayscale(1)";
+
+  document.getElementById("finish").disabled = true;
+  document.getElementById("finish").style.opacity = ".18";
+
+  finalMsg.textContent =
+    "✅ Cảm ơn mọi người đã tham gia bình chọn.";
+
+  confetti(45);
+}
+
 function render(state){
   participantsEl.textContent = state.participants;
   yesCountEl.textContent = state.yesCount;
@@ -219,7 +266,6 @@ function render(state){
 
   bar.style.width = state.yesPercent + "%";
 
-  // HOST dùng tổng số lần KHÔNG của cả lớp.
   const yesScale =
     Math.min(1 + state.globalNoAttempts*.055 + state.yesCount*.015, 3.6);
 
@@ -235,12 +281,14 @@ function render(state){
   no.style.opacity =
     Math.max(1 - state.globalNoAttempts*.025, .13);
 
-  if(state.globalNoAttempts > lastGlobalNoAttempts){
+  if(
+    !state.pollFinished &&
+    state.globalNoAttempts > lastGlobalNoAttempts
+  ){
     moveNo();
     lastGlobalNoAttempts = state.globalNoAttempts;
   }
 
-  // Trên slide có thể biến mất sau nhiều lần cả lớp bấm KHÔNG.
   no.style.display =
     state.globalNoAttempts >= 28 ? "none" : "block";
 
@@ -252,12 +300,17 @@ function render(state){
     lastYesCount = state.yesCount;
   }
 
+  if(state.pollFinished){
+    if(!isFinished) showFinishedUI();
+    return;
+  }
+
   if(
     state.participants > 0 &&
     state.yesCount === state.participants
   ){
     finalMsg.textContent =
-      "🎉 100% chọn CÓ! Cảm ơn mọi người! 🎉";
+      "🎉 100% chọn CÓ! Cảm ơn mọi người đã tham gia bình chọn! 🎉";
 
     if(!celebrated100){
       celebrated100 = true;
@@ -274,15 +327,39 @@ function render(state){
 }
 
 socket.on("state", render);
+socket.on("pollFinished", () => {
+  if(!isFinished) showFinishedUI();
+});
 
 socket.on("pollReset", () => {
   lastGlobalNoAttempts = 0;
   lastYesCount = 0;
   celebrated100 = false;
+  isFinished = false;
+
+  finishedBadge.style.display = "none";
+  qrbox.style.opacity = "1";
+  qrbox.style.filter = "none";
+
+  const finishBtn = document.getElementById("finish");
+  finishBtn.disabled = false;
+  finishBtn.style.opacity = ".42";
+});
+
+document.getElementById("finish").addEventListener("click", () => {
+  if(isFinished) return;
+
+  if(confirm(
+    "Kết thúc bình chọn?\n\n" +
+    "Sau khi kết thúc, sẽ không nhận thêm lượt mới. " +
+    "Lần tiếp theo F5/mở lại màn hình này, game sẽ bắt đầu lại từ 0."
+  )){
+    socket.emit("finishPoll");
+  }
 });
 
 document.getElementById("reset").addEventListener("click", () => {
-  if(confirm("Reset toàn bộ phòng bình chọn?")){
+  if(confirm("Reset ngay toàn bộ phòng bình chọn về 0?")){
     socket.emit("resetPoll");
   }
 });
