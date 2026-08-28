@@ -29,13 +29,13 @@ button{
   white-space:nowrap;-webkit-tap-highlight-color:transparent
 }
 #yesBtn{
-  left:35%;top:53%;transform:translate(-50%,-50%);
-  padding:22px 40px;font-size:28px;background:#10a84b;color:white;
+  left:34%;top:53%;transform:translate(-50%,-50%) scale(1);
+  padding:20px 34px;font-size:24px;background:#10a84b;color:white;
   box-shadow:0 0 28px rgba(16,168,75,.35);z-index:4
 }
 #noBtn{
-  left:68%;top:53%;transform:translate(-50%,-50%);
-  padding:18px 32px;font-size:22px;background:#ef3f47;color:white;
+  left:68%;top:53%;transform:translate(-50%,-50%) scale(1);
+  padding:20px 34px;font-size:24px;background:#ef3f47;color:white;
   box-shadow:0 0 24px rgba(239,63,71,.25);z-index:5
 }
 .live{
@@ -70,7 +70,7 @@ button{
   </div>
 
   <div class="note">
-    Mỗi lần mở lại trang được tính là một lượt tham gia mới.
+    Mỗi lượt mở trang bắt đầu lại với hai nút CÓ / KHÔNG như nhau.
   </div>
 
   <div class="done" id="done">
@@ -91,9 +91,7 @@ const participantsEl = document.getElementById("participants");
 const yesCountEl = document.getElementById("yesCount");
 const done = document.getElementById("done");
 
-// QUAN TRỌNG:
-// Không dùng localStorage.
-// Mỗi lần tải/mở trang -> tạo sessionId mới -> tính là lượt mới.
+// Mỗi lần mở/tải lại trang = session mới.
 function newSessionId(){
   if(window.crypto && crypto.randomUUID){
     return crypto.randomUUID();
@@ -103,7 +101,11 @@ function newSessionId(){
 
 let sessionId = newSessionId();
 let alreadyVoted = false;
-let lastNoAttempts = 0;
+
+// QUAN TRỌNG:
+// Biến này CHỈ thuộc điện thoại hiện tại.
+// Không lấy tổng KHÔNG từ server.
+let localNoAttempts = 0;
 
 function join(){
   socket.emit("joinSession", sessionId);
@@ -123,17 +125,30 @@ socket.on("joined", info => {
   }
 });
 
-function moveNo(){
+function resetLocalButtons(){
+  localNoAttempts = 0;
+
+  yesBtn.style.left = "34%";
+  yesBtn.style.top = "53%";
+  yesBtn.style.transform = "translate(-50%,-50%) scale(1)";
+  yesBtn.style.opacity = "1";
+
+  noBtn.style.left = "68%";
+  noBtn.style.top = "53%";
+  noBtn.style.transform = "translate(-50%,-50%) scale(1)";
+  noBtn.style.opacity = "1";
+  noBtn.style.display = "block";
+  noBtn.textContent = "KHÔNG 😝";
+}
+
+function moveLocalNo(){
   noBtn.style.left = (9 + Math.random()*82) + "%";
   noBtn.style.top  = (12 + Math.random()*72) + "%";
 }
 
-function render(state){
-  participantsEl.textContent = state.participants;
-  yesCountEl.textContent = state.yesCount;
-
-  const yesScale = Math.min(1 + state.noAttempts*.055, 3.2);
-  const noScale = Math.max(1 - state.noAttempts*.035, .16);
+function renderLocalButtons(){
+  const yesScale = Math.min(1 + localNoAttempts*.18, 3.0);
+  const noScale = Math.max(1 - localNoAttempts*.10, .22);
 
   yesBtn.style.transform =
     `translate(-50%,-50%) scale(${yesScale})`;
@@ -142,16 +157,25 @@ function render(state){
     `translate(-50%,-50%) scale(${noScale})`;
 
   noBtn.style.opacity =
-    Math.max(1 - state.noAttempts*.025, .14);
+    Math.max(1 - localNoAttempts*.07, .20);
 
-  if(state.noAttempts > lastNoAttempts){
-    moveNo();
-    lastNoAttempts = state.noAttempts;
+  if(localNoAttempts >= 7){
+    noBtn.textContent = "KHÔNG? 🥹";
   }
 
-  noBtn.style.display =
-    state.noAttempts >= 28 ? "none" : "block";
+  // Trên điện thoại KHÔNG không biến mất quá sớm.
+  // Cho chơi đến 12 lần mới biến mất.
+  if(localNoAttempts >= 12){
+    noBtn.style.display = "none";
+  }
 }
+
+// State từ server chỉ dùng để hiện số liệu.
+// KHÔNG dùng globalNoAttempts để chỉnh nút trên điện thoại.
+socket.on("state", state => {
+  participantsEl.textContent = state.participants;
+  yesCountEl.textContent = state.yesCount;
+});
 
 yesBtn.addEventListener("click", () => {
   if(alreadyVoted) return;
@@ -165,25 +189,30 @@ yesBtn.addEventListener("click", () => {
 });
 
 noBtn.addEventListener("click", () => {
+  localNoAttempts += 1;
+
+  // Gửi 1 lượt KHÔNG lên HOST để cộng tổng.
   socket.emit("tryNo");
-  moveNo();
+
+  // Chỉ thay đổi nút của điện thoại này.
+  moveLocalNo();
+  renderLocalButtons();
 });
 
-socket.on("state", render);
-
 socket.on("pollReset", () => {
-  // Sau RESET, trang hiện tại trở thành một lượt mới.
   sessionId = newSessionId();
   alreadyVoted = false;
-  lastNoAttempts = 0;
 
   yesBtn.textContent = "CÓ 👍";
   yesBtn.style.pointerEvents = "auto";
   done.style.display = "none";
-  noBtn.style.display = "block";
 
+  resetLocalButtons();
   join();
 });
+
+// Khi vừa vào trang, luôn bắt đầu hai nút ngang nhau.
+resetLocalButtons();
 </script>
 </body>
 </html>
