@@ -1,7 +1,6 @@
 {
   "name": "thay-tuan-anh-qr-game",
-  "version": "1.0.0",
-  "description": "Realtime QR classroom game",
+  "version": "1.1.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
